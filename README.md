@@ -1,0 +1,2 @@
+# InfiniteGen
+Infinite parameter generator
