@@ -1,7 +1,8 @@
 # InfiniteGen
 
 [![CI](https://github.com/kapildhinwa2010-dev/InfiniteGen/actions/workflows/ci.yml/badge.svg)](https://github.com/kapildhinwa2010-dev/InfiniteGen/actions/workflows/ci.yml)
-[![CI](https://github.com/kapildhinwa2010-dev/InfiniteGen/actions/workflows/codeql.yml/badge.svg)](https://github.com/kapildhinwa2010-dev/InfiniteGen/actions/workflows/codeql.yml)
+[![CodeQL](https://github.com/kapildhinwa2010-dev/InfiniteGen/actions/workflows/codeql.yml/badge.svg)](https://github.com/kapildhinwa2010-dev/InfiniteGen/actions/workflows/codeql.yml)
+
 
 Endless seeded matrix generation: an iterator of independent low-rank matrices from one recipe.
 
