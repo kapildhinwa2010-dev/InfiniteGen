@@ -1,17 +1,7 @@
 import numpy as np
 import pytest
 
-from infinitegen import (
-    GenRecipe,
-    MemoryBudget,
-    generate,
-    generate_chunked,
-    generate_infinite,
-    generate_parallel,
-    generate_safe,
-    generate_stream,
-    load_stream,
-)
+from infinitegen import GenRecipe, generate, generate_infinite, take
 
 
 def test_generate_shape():
@@ -41,60 +31,31 @@ def test_infinite_yields_distinct():
     assert not np.array_equal(second, third)
 
 
-def test_chunked_reassembles_to_full():
-    recipe = GenRecipe(rows=10, cols=7, rank=3, seed=2)
-    chunks = list(generate_chunked(recipe, chunk_rows=4))
-    rebuilt = np.vstack(chunks)
-    assert np.array_equal(rebuilt, generate(recipe))
-    assert all(c.shape[0] <= 4 for c in chunks)
+def test_infinite_is_lazy():
+    recipe = GenRecipe(rows=4, cols=4, seed=1)
+    stream = generate_infinite(recipe)
+    first = next(stream)
+    assert first.shape == (4, 4)
 
 
-def test_chunked_rejects_bad_chunk():
+# --- take (InfiniteGen-specific) ---
+
+
+def test_take_returns_count_matrices():
+    recipe = GenRecipe(rows=4, cols=4, seed=2)
+    mats = take(recipe, 5)
+    assert len(mats) == 5
+    assert np.array_equal(mats[0], generate(recipe))
+
+
+def test_take_matches_stream_prefix():
+    recipe = GenRecipe(rows=4, cols=4, seed=2)
+    stream = generate_infinite(recipe)
+    from_stream = [next(stream) for _ in range(3)]
+    taken = take(recipe, 3)
+    assert all(np.array_equal(a, b) for a, b in zip(from_stream, taken))
+
+
+def test_take_rejects_zero():
     with pytest.raises(ValueError):
-        list(generate_chunked(GenRecipe(rows=4, cols=4), chunk_rows=0))
-
-
-def test_safe_allows_small():
-    recipe = GenRecipe(rows=4, cols=4)
-    assert generate_safe(recipe, max_bytes=1024).shape == (4, 4)
-
-
-def test_safe_raises_memory_budget():
-    recipe = GenRecipe(rows=1024, cols=1024)
-    with pytest.raises(MemoryBudget):
-        generate_safe(recipe, max_bytes=1024)
-
-
-def test_safe_rejects_bad_budget():
-    with pytest.raises(ValueError):
-        generate_safe(GenRecipe(rows=2, cols=2), max_bytes=0)
-
-
-def test_parallel_returns_blocks():
-    recipe = GenRecipe(rows=6, cols=6, seed=5)
-    blocks = generate_parallel(recipe, blocks=3, workers=2)
-    assert len(blocks) == 3
-    assert all(b.shape == (6, 6) for b in blocks)
-    assert not np.array_equal(blocks[0], blocks[1])
-
-
-def test_parallel_rejects_bad_args():
-    with pytest.raises(ValueError):
-        generate_parallel(GenRecipe(rows=2, cols=2), blocks=0)
-
-
-def test_stream_roundtrip(tmp_path):
-    recipe = GenRecipe(rows=9, cols=5, rank=3, seed=7)
-    path = str(tmp_path / "stream.raw")
-    rows = generate_stream(recipe, path, chunk_rows=4)
-    assert rows == 9
-    rebuilt = load_stream(path, rows=9, cols=5)
-    assert np.array_equal(rebuilt, generate(recipe))
-
-
-def test_load_stream_rejects_mismatch(tmp_path):
-    recipe = GenRecipe(rows=4, cols=4)
-    path = str(tmp_path / "s.raw")
-    generate_stream(recipe, path)
-    with pytest.raises(ValueError):
-        load_stream(path, rows=5, cols=4)
+        take(GenRecipe(rows=2, cols=2), 0)
